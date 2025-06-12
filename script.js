@@ -229,14 +229,17 @@ class BodyCompositionTracker {
             muscleMass: /muscle\s*([0-9]+(?:\.[0-9]+)?)\s*kg/i,
             bodyWater: /water\s*([0-9]+(?:\.[0-9]+)?)\s*%/i,
             bmi: /bmi\s*([0-9]+(?:\.[0-9]+)?)/i,
-            visceralFat: /visceral\s*fat\s*([0-9]+)/i
+            visceralFat: /visceral\s*fat\s*([0-9]+)/i,
+            basalMetabolism: /basal\s*metabolism\s*([0-9,]+)\s*kcal/i,
+            protein: /protein\s*([0-9]+(?:\.[0-9]+)?)\s*%/i,
+            boneMass: /bone\s*mass\s*([0-9]+(?:\.[0-9]+)?)\s*kg/i
         };
 
         // Try to match Zepp Life specific patterns first
         for (const [key, pattern] of Object.entries(zeppPatterns)) {
             const match = text.match(pattern);
             if (match) {
-                const value = parseFloat(match[1]);
+                let value = parseFloat(match[1].replace(/,/g, '')); // Remove commas from numbers
                 if (!isNaN(value)) {
                     data[key] = value;
                 }
@@ -250,13 +253,16 @@ class BodyCompositionTracker {
                 muscleMass: /(?:muscle\s*mass|muscle)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
                 bodyWater: /(?:body\s*water|water\s*%|water\s*percentage)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
                 bmi: /(?:bmi|body\s*mass\s*index)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
-                visceralFat: /(?:visceral\s*fat|visceral)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i
+                visceralFat: /(?:visceral\s*fat|visceral)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
+                basalMetabolism: /(?:basal\s*metabolism|metabolism)\s*:?\s*([0-9,]+)(?:\s*kcal)?/i,
+                protein: /(?:protein)\s*:?\s*([0-9]+(?:\.[0-9]+)?)\s*%/i,
+                boneMass: /(?:bone\s*mass|bone)\s*:?\s*([0-9]+(?:\.[0-9]+)?)\s*kg/i
             };
 
             for (const [key, pattern] of Object.entries(generalPatterns)) {
                 const match = text.match(pattern);
                 if (match) {
-                    const value = parseFloat(match[1]);
+                    const value = parseFloat(match[1].replace(/,/g, '')); // Remove commas from numbers
                     if (!isNaN(value)) {
                         data[key] = value;
                     }
@@ -383,7 +389,10 @@ class BodyCompositionTracker {
             muscleMass: 'Muscle Mass',
             bodyWater: 'Body Water',
             bmi: 'BMI',
-            visceralFat: 'Visceral Fat'
+            visceralFat: 'Visceral Fat',
+            basalMetabolism: 'Basal Metabolism',
+            protein: 'Protein',
+            boneMass: 'Bone Mass'
         };
         return names[key] || key;
     }
@@ -395,7 +404,10 @@ class BodyCompositionTracker {
             muscleMass: 'kg',
             bodyWater: '%',
             bmi: '',
-            visceralFat: ''
+            visceralFat: '',
+            basalMetabolism: 'kcal',
+            protein: '%',
+            boneMass: 'kg'
         };
         return units[key] || '';
     }
@@ -459,6 +471,9 @@ class BodyCompositionTracker {
                 <td>${entry.bodyWater || '-'}</td>
                 <td>${entry.bmi || '-'}</td>
                 <td>${entry.visceralFat || '-'}</td>
+                <td>${entry.basalMetabolism || '-'}</td>
+                <td>${entry.protein || '-'}</td>
+                <td>${entry.boneMass || '-'}</td>
                 <td>
                     <button class="delete-btn" onclick="window.app.deleteEntry(${index})">Delete</button>
                 </td>
