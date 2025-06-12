@@ -445,6 +445,39 @@ class BodyCompositionTracker {
         return {};
     }
 
+    // Get Y-axis configuration to ensure threshold lines are visible
+    getYAxisConfig(metric) {
+        const threshold = this.getHealthThreshold(metric);
+        if (!threshold) {
+            return {};
+        }
+
+        // Get all values for this metric to determine proper range
+        const allValues = this.data
+            .filter(entry => entry[metric] !== undefined && entry[metric] !== null)
+            .map(entry => entry[metric]);
+
+        if (allValues.length === 0) {
+            // No data yet, use threshold-based range
+            return {
+                suggestedMin: Math.max(0, threshold.value - 10),
+                suggestedMax: threshold.value + 10
+            };
+        }
+
+        const minValue = Math.min(...allValues);
+        const maxValue = Math.max(...allValues);
+        
+        // Ensure threshold is always visible in the range
+        const adjustedMin = Math.min(minValue, threshold.value) - 2;
+        const adjustedMax = Math.max(maxValue, threshold.value) + 2;
+
+        return {
+            suggestedMin: Math.max(0, adjustedMin),
+            suggestedMax: adjustedMax
+        };
+    }
+
     // Progress bar management
     showProgress(show) {
         const progressContainer = document.getElementById('uploadProgress');
@@ -672,7 +705,8 @@ class BodyCompositionTracker {
                                 title: {
                                     display: true,
                                     text: `${this.formatMetricName(metric)} ${this.getUnit(metric)}`
-                                }
+                                },
+                                ...this.getYAxisConfig(metric)
                             }
                         }
                     }
@@ -758,6 +792,16 @@ class BodyCompositionTracker {
             
             chart.data.labels = labels;
             chart.data.datasets = datasets;
+            
+            // Update y-axis range to ensure threshold lines are visible
+            const yAxisConfig = this.getYAxisConfig(metric);
+            if (yAxisConfig.suggestedMin !== undefined || yAxisConfig.suggestedMax !== undefined) {
+                chart.options.scales.y = {
+                    ...chart.options.scales.y,
+                    ...yAxisConfig
+                };
+            }
+            
             chart.update();
         });
     }
