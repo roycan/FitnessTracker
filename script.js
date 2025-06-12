@@ -22,6 +22,8 @@ class BodyCompositionTracker {
             visceralFat: this.getHealthThreshold('visceralFat'),
             protein: this.getHealthThreshold('protein')
         });
+
+
     }
 
     // Bind event listeners
@@ -569,6 +571,8 @@ class BodyCompositionTracker {
         return units[key] || '';
     }
 
+
+
     // Data management
     loadData() {
         try {
@@ -784,21 +788,25 @@ class BodyCompositionTracker {
             // Add threshold line if applicable
             const threshold = this.getHealthThreshold(metric);
             if (threshold && labels.length > 0) {
-                console.log(`Adding threshold line for ${metric}: ${threshold.value}`);
+                console.log(`Adding threshold line for ${metric}: ${threshold.value}, labels: ${labels.length}`);
                 const thresholdData = new Array(labels.length).fill(threshold.value);
+                console.log(`Threshold data array:`, thresholdData);
+                
                 datasets.push({
                     label: `🎯 ${threshold.label}`,
                     data: thresholdData,
                     borderColor: threshold.color,
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    borderDash: [10, 5],
+                    backgroundColor: 'rgba(0,0,0,0)',
+                    borderWidth: 3,
+                    borderDash: [8, 4],
                     pointRadius: 0,
                     pointHoverRadius: 0,
                     fill: false,
                     tension: 0,
-                    order: 999 // Draw threshold lines on top
+                    order: 1 // Draw threshold lines behind data
                 });
+                
+                console.log(`Dataset added for ${metric}:`, datasets[datasets.length - 1]);
             }
             
             chart.data.labels = labels;

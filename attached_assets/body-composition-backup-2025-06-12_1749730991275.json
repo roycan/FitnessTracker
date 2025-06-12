@@ -1,0 +1,92 @@
+{
+  "version": "1.0",
+  "exportDate": "2025-06-12T07:18:41.543Z",
+  "totalEntries": 9,
+  "data": [
+    {
+      "name": "Ross",
+      "timestamp": "2025-01-16T11:09:00.000Z",
+      "filename": "0f8304a5-173d-4ce6-b40b-e9085c48fb90-1_all_13860.jpg",
+      "bodyFat": 27.9,
+      "bmi": 28.4,
+      "visceralFat": 12
+    },
+    {
+      "name": "Ross",
+      "timestamp": "2025-02-02T08:09:00.000Z",
+      "filename": "0f8304a5-173d-4ce6-b40b-e9085c48fb90-1_all_13865.jpg",
+      "bodyFat": 28.1,
+      "muscleMass": 55.57,
+      "bmi": 28.4,
+      "visceralFat": 12
+    },
+    {
+      "name": "Rap",
+      "timestamp": "2025-01-16T11:07:00.000Z",
+      "filename": "1000005222.jpg",
+      "bodyFat": 30.4,
+      "muscleMass": 58.03,
+      "bodyWater": 49.7,
+      "bmi": 30.3,
+      "visceralFat": 13
+    },
+    {
+      "name": "roy.canseco",
+      "timestamp": "2025-02-12T12:15:00.000Z",
+      "filename": "1000005220.jpg",
+      "bodyFat": 29.2,
+      "muscleMass": 56.03,
+      "bodyWater": 50.5,
+      "bmi": 29.5,
+      "visceralFat": 14
+    },
+    {
+      "name": "roy.canseco",
+      "timestamp": "2025-04-01T01:03:00.000Z",
+      "filename": "1000005219.jpg",
+      "bodyFat": 30,
+      "muscleMass": 55.42,
+      "bodyWater": 50,
+      "bmi": 29.5,
+      "visceralFat": 14
+    },
+    {
+      "name": "Rap",
+      "timestamp": "2025-02-02T08:08:00.000Z",
+      "filename": "1000005221.jpg",
+      "muscleMass": 57.28,
+      "bodyWater": 50.5,
+      "bmi": 29.5,
+      "visceralFat": 13
+    },
+    {
+      "name": "Ross",
+      "timestamp": "2025-02-12T12:12:00.000Z",
+      "filename": "1000005218.jpg",
+      "bodyFat": 26.8,
+      "muscleMass": 55,
+      "bodyWater": 50.2,
+      "bmi": 27.7,
+      "visceralFat": 12
+    },
+    {
+      "name": "Rap",
+      "timestamp": "2025-02-12T12:13:00.000Z",
+      "filename": "1000005217.jpg",
+      "bodyFat": 28.8,
+      "muscleMass": 56.81,
+      "bodyWater": 50.8,
+      "bmi": 29.1,
+      "visceralFat": 13
+    },
+    {
+      "name": "roy.canseco",
+      "timestamp": "2025-06-12T03:11:00.000Z",
+      "filename": "1000005216.jpg",
+      "muscleMass": 55.29,
+      "bodyWater": 50.5,
+      "bmi": 29.1,
+      "visceralFat": 13
+    }
+  ]
+}
