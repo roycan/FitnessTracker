@@ -455,7 +455,7 @@ class BodyCompositionTracker {
                 <td>${entry.bmi || '-'}</td>
                 <td>${entry.visceralFat || '-'}</td>
                 <td>
-                    <button class="delete-btn" onclick="app.deleteEntry(${index})">Delete</button>
+                    <button class="delete-btn" onclick="window.app.deleteEntry(${index})">Delete</button>
                 </td>
             </tr>
         `).join('');
@@ -494,45 +494,55 @@ class BodyCompositionTracker {
 
     // Chart management
     initializeCharts() {
+        // Check if Chart.js is loaded
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js not loaded');
+            return;
+        }
+
         const metrics = ['bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat'];
         
         metrics.forEach(metric => {
-            const ctx = document.getElementById(`${metric}Chart`).getContext('2d');
-            this.charts[metric] = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: []
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: `${this.formatMetricName(metric)} Over Time`
-                        },
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
+            try {
+                const ctx = document.getElementById(`${metric}Chart`).getContext('2d');
+                this.charts[metric] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: []
                     },
-                    scales: {
-                        x: {
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
                             title: {
                                 display: true,
-                                text: 'Date'
+                                text: `${this.formatMetricName(metric)} Over Time`
+                            },
+                            legend: {
+                                display: true,
+                                position: 'top'
                             }
                         },
-                        y: {
-                            title: {
-                                display: true,
-                                text: `${this.formatMetricName(metric)} ${this.getUnit(metric)}`
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: `${this.formatMetricName(metric)} ${this.getUnit(metric)}`
+                                }
                             }
                         }
                     }
-                }
-            });
+                });
+            } catch (error) {
+                console.error(`Failed to initialize chart for ${metric}:`, error);
+            }
         });
     }
 
@@ -589,5 +599,15 @@ class BodyCompositionTracker {
 // Initialize the application when the page loads
 let app;
 document.addEventListener('DOMContentLoaded', () => {
-    app = new BodyCompositionTracker();
+    // Wait for Chart.js to load before initializing
+    if (typeof Chart !== 'undefined') {
+        app = new BodyCompositionTracker();
+        window.app = app; // Make app globally accessible
+    } else {
+        // Retry after a short delay
+        setTimeout(() => {
+            app = new BodyCompositionTracker();
+            window.app = app;
+        }, 1000);
+    }
 });
