@@ -454,10 +454,6 @@ class BodyCompositionTracker {
                     },
                     scales: {
                         x: {
-                            type: 'time',
-                            time: {
-                                unit: 'day'
-                            },
                             title: {
                                 display: true,
                                 text: 'Date'
@@ -494,7 +490,7 @@ class BodyCompositionTracker {
                     .filter(entry => entry.name === user && entry[metric] !== undefined)
                     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
                     .map(entry => ({
-                        x: new Date(entry.timestamp),
+                        x: new Date(entry.timestamp).toLocaleDateString(),
                         y: entry[metric]
                     }));
                 
