@@ -1,0 +1,29 @@
+Project Goal: Build a comprehensive, multi-user web application to track and visualize body composition measurements. The application must run entirely in the browser using client-side technologies and require no server-side backend.
+Core Requirements:
+ * User & File Input:
+   * Include a text input field where the user can enter their name to select a profile or create a new one.
+   * Provide a file input that allows the user to select and upload multiple image files at once (screenshots from the Zepp Life app).
+ * Image Processing (OCR):
+   * For each uploaded image, use a free, client-side JavaScript library (like Tesseract.js) for Optical Character Recognition (OCR) to extract the text data.
+   * Parse the extracted text to identify key-value pairs (e.g., "Body Fat", "Muscle Mass", "Body Water", "BMI", "Visceral Fat").
+ * Data Storage (Multi-User):
+   * Store the data in the browser's Local Storage.
+   * The data structure must now support multiple users. Each data entry should be a JSON object containing:
+     * The person's name (from the input field).
+     * A timestamp for the measurement.
+     * The parsed body composition metrics.
+   * Example JSON structure: [{ "name": "Alex", "timestamp": "2025-06-12T14:00:00Z", "bodyFat": 15.2, "muscleMass": 65.1 }, ...]
+ * Data Visualization (Graphs):
+   * Integrate a JavaScript charting library (like Chart.js or a similar alternative) to create graphs.
+   * For each major body composition metric (e.g., "Body Fat", "Muscle Mass"), generate a separate line graph.
+   * Each graph must display multiple plots (lines), with one plot for each person whose data is stored. This allows for visual comparison between users over time.
+   * The X-axis of the graphs should represent the date/time of the measurement, and the Y-axis should represent the value of the metric.
+ * Data Display (Table):
+   * Continue to display the raw data in a clear, filterable table. The user should be able to filter the table by person's name.
+Technology Stack:
+ * HTML
+ * CSS
+ * JavaScript (ES6)
+ * A free client-side OCR library (e.g., Tesseract.js)
+ * A JavaScript charting library (e.g., Chart.js)
+Please provide the complete code for the index.html, style.css, and script.js files needed to create this application.
