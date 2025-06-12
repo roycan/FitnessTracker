@@ -12,6 +12,7 @@ class BodyCompositionTracker {
         this.bindEvents();
         this.updateUI();
         this.initializeCharts();
+        this.updateGenerateChartsButton();
     }
 
     // Bind event listeners
@@ -36,6 +37,9 @@ class BodyCompositionTracker {
         
         // Clear data
         document.getElementById('clearDataBtn').addEventListener('click', () => this.clearAllData());
+        
+        // Generate charts button
+        document.getElementById('generateChartsBtn').addEventListener('click', () => this.generateCharts());
     }
 
     // Profile management
@@ -427,7 +431,8 @@ class BodyCompositionTracker {
     // UI updates
     updateUI() {
         this.updateTable();
-        this.updateCharts();
+        this.updateGenerateChartsButton();
+        // Don't auto-update charts anymore - user controls this with button
     }
 
     // Table management
@@ -593,6 +598,27 @@ class BodyCompositionTracker {
             chart.data.datasets = datasets;
             chart.update();
         });
+    }
+
+    // Generate charts on demand
+    generateCharts() {
+        if (this.data.length === 0) {
+            alert('No data available to generate charts. Please upload some images first.');
+            return;
+        }
+        this.updateCharts();
+    }
+
+    // Update generate charts button state
+    updateGenerateChartsButton() {
+        const button = document.getElementById('generateChartsBtn');
+        if (this.data.length === 0) {
+            button.disabled = true;
+            button.textContent = 'No Data Available';
+        } else {
+            button.disabled = false;
+            button.textContent = 'Generate Charts';
+        }
     }
 }
 
