@@ -135,11 +135,14 @@ class BodyCompositionTracker {
                     // Remove metadata from extracted data before storing
                     const { extractedName, extractedDate, ...metrics } = extractedData;
                     
+                    // Validate and clean metrics to remove OCR errors
+                    const cleanedMetrics = this.validateMetrics(metrics, userName);
+                    
                     const dataEntry = {
                         name: userName,
                         timestamp: timestamp,
                         filename: file.name,
-                        ...metrics
+                        ...cleanedMetrics
                     };
                     
                     this.data.push(dataEntry);
@@ -345,6 +348,84 @@ class BodyCompositionTracker {
         const start = Math.max(0, index - 20);
         const end = Math.min(text.length, index + match.length + 20);
         return text.substring(start, end);
+    }
+
+    // Validate metrics to remove OCR errors (like missing decimal points)
+    validateMetrics(metrics, userName) {
+        const cleanedMetrics = {};
+        const metricNames = ['bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat', 'basalMetabolism', 'protein', 'boneMass'];
+        
+        // Get previous data for this user to establish baseline ranges
+        const userHistory = this.data.filter(entry => entry.name === userName);
+        
+        for (const [key, value] of Object.entries(metrics)) {
+            if (metricNames.includes(key) && typeof value === 'number') {
+                let isValid = true;
+                
+                // Get historical values for this metric
+                const historicalValues = userHistory
+                    .map(entry => entry[key])
+                    .filter(val => val !== undefined && val !== null)
+                    .sort((a, b) => a - b);
+                
+                if (historicalValues.length > 0) {
+                    const maxHistorical = Math.max(...historicalValues);
+                    const minHistorical = Math.min(...historicalValues);
+                    const avgHistorical = historicalValues.reduce((sum, val) => sum + val, 0) / historicalValues.length;
+                    
+                    // Reject values that are more than double the previous maximum
+                    // or more than 10x the average (for cases with very low historical values)
+                    const upperLimit = Math.max(maxHistorical * 2, avgHistorical * 10);
+                    
+                    // Also set reasonable absolute limits based on metric type
+                    const absoluteLimits = {
+                        bodyFat: 60,        // Body fat % rarely exceeds 60%
+                        muscleMass: 100,    // Muscle mass rarely exceeds 100kg
+                        bodyWater: 80,      // Body water % rarely exceeds 80%
+                        bmi: 60,            // BMI rarely exceeds 60
+                        visceralFat: 30,    // Visceral fat level rarely exceeds 30
+                        basalMetabolism: 5000, // Basal metabolism rarely exceeds 5000 kcal
+                        protein: 30,        // Protein % rarely exceeds 30%
+                        boneMass: 10        // Bone mass rarely exceeds 10kg
+                    };
+                    
+                    const absoluteLimit = absoluteLimits[key] || Infinity;
+                    const finalLimit = Math.min(upperLimit, absoluteLimit);
+                    
+                    if (value > finalLimit) {
+                        console.warn(`Rejecting ${key} value ${value} for ${userName} (exceeds limit ${finalLimit.toFixed(1)})`);
+                        isValid = false;
+                    }
+                } else {
+                    // For first-time data, use only absolute limits
+                    const absoluteLimits = {
+                        bodyFat: 60,
+                        muscleMass: 100,
+                        bodyWater: 80,
+                        bmi: 60,
+                        visceralFat: 30,
+                        basalMetabolism: 5000,
+                        protein: 30,
+                        boneMass: 10
+                    };
+                    
+                    const absoluteLimit = absoluteLimits[key] || Infinity;
+                    if (value > absoluteLimit) {
+                        console.warn(`Rejecting ${key} value ${value} for ${userName} (exceeds absolute limit ${absoluteLimit})`);
+                        isValid = false;
+                    }
+                }
+                
+                if (isValid) {
+                    cleanedMetrics[key] = value;
+                }
+            } else {
+                // Keep non-numeric values as-is
+                cleanedMetrics[key] = value;
+            }
+        }
+        
+        return cleanedMetrics;
     }
 
     // Progress bar management
