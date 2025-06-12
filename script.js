@@ -520,7 +520,7 @@ class BodyCompositionTracker {
             return;
         }
 
-        const metrics = ['bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat'];
+        const metrics = ['bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat', 'basalMetabolism', 'protein', 'boneMass'];
         
         metrics.forEach(metric => {
             try {
@@ -567,7 +567,7 @@ class BodyCompositionTracker {
     }
 
     updateCharts() {
-        const metrics = ['bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat'];
+        const metrics = ['bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat', 'basalMetabolism', 'protein', 'boneMass'];
         const users = [...new Set(this.data.map(entry => entry.name))];
         
         // Generate colors for each user
