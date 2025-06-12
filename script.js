@@ -218,18 +218,31 @@ class BodyCompositionTracker {
             }
         }
         
-        // Extract date from Zepp Life format (e.g., "01/16 07:07 PM", "02/02 04:08 PM")
+        // Extract date from Zepp Life format
         let extractedDate = null;
-        const datePattern = /(\d{2}\/\d{2})\s+(\d{2}:\d{2})\s+(AM|PM)/i;
-        const dateMatch = text.match(datePattern);
-        if (dateMatch) {
-            const [, date, time, ampm] = dateMatch;
-            const currentYear = new Date().getFullYear();
-            extractedDate = new Date(`${currentYear}/${date} ${time} ${ampm}`).toISOString();
+        
+        // Pattern 1: MM/DD/YYYY format (e.g., "06/12/2024")
+        const fullDatePattern = /(\d{2}\/\d{2}\/\d{4})/;
+        const fullDateMatch = text.match(fullDatePattern);
+        
+        if (fullDateMatch) {
+            const [, date] = fullDateMatch;
+            extractedDate = new Date(date).toISOString();
+        } else {
+            // Pattern 2: MM/DD with time format (e.g., "01/16 07:07 PM", "03/04 04:08 PM")
+            const shortDatePattern = /(\d{2}\/\d{2})\s+(\d{2}:\d{2})\s+(AM|PM)/i;
+            const shortDateMatch = text.match(shortDatePattern);
+            
+            if (shortDateMatch) {
+                const [, date, time, ampm] = shortDateMatch;
+                const currentYear = new Date().getFullYear();
+                extractedDate = new Date(`${currentYear}/${date} ${time} ${ampm}`).toISOString();
+            }
         }
         
         // Zepp Life specific patterns for metrics
         const zeppPatterns = {
+            bodyScore: /body\s*score\s*([0-9]+)/i,
             bodyFat: /body\s*fat\s*([0-9]+(?:\.[0-9]+)?)\s*%/i,
             muscleMass: /muscle\s*([0-9]+(?:\.[0-9]+)?)\s*kg/i,
             bodyWater: /water\s*([0-9]+(?:\.[0-9]+)?)\s*%/i,
@@ -254,6 +267,7 @@ class BodyCompositionTracker {
         // Fallback to general patterns if Zepp Life patterns don't work
         if (Object.keys(data).length === 0) {
             const generalPatterns = {
+                bodyScore: /(?:body\s*score|score)\s*:?\s*([0-9]+)/i,
                 bodyFat: /(?:body\s*fat|fat\s*percentage|fat\s*%)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
                 muscleMass: /(?:muscle\s*mass|muscle)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
                 bodyWater: /(?:body\s*water|water\s*%|water\s*percentage)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
@@ -390,6 +404,7 @@ class BodyCompositionTracker {
     // Format metric names for display
     formatMetricName(key) {
         const names = {
+            bodyScore: 'Body Score',
             bodyFat: 'Body Fat',
             muscleMass: 'Muscle Mass',
             bodyWater: 'Body Water',
@@ -405,6 +420,7 @@ class BodyCompositionTracker {
     // Get unit for metric
     getUnit(key) {
         const units = {
+            bodyScore: '',
             bodyFat: '%',
             muscleMass: 'kg',
             bodyWater: '%',
@@ -472,6 +488,7 @@ class BodyCompositionTracker {
             <tr>
                 <td>${entry.name}</td>
                 <td>${new Date(entry.timestamp).toLocaleDateString()}</td>
+                <td>${entry.bodyScore || '-'}</td>
                 <td>${entry.bodyFat || '-'}</td>
                 <td>${entry.muscleMass || '-'}</td>
                 <td>${entry.bodyWater || '-'}</td>
@@ -526,7 +543,7 @@ class BodyCompositionTracker {
             return;
         }
 
-        const metrics = ['bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat', 'basalMetabolism', 'protein', 'boneMass'];
+        const metrics = ['bodyScore', 'bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat', 'basalMetabolism', 'protein', 'boneMass'];
         
         metrics.forEach(metric => {
             try {
