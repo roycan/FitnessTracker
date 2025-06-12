@@ -13,6 +13,15 @@ class BodyCompositionTracker {
         this.updateUI();
         this.initializeCharts();
         this.updateGenerateChartsButton();
+        
+        // Log threshold configuration for debugging
+        console.log('Threshold configuration loaded:', {
+            bmi: this.getHealthThreshold('bmi'),
+            bodyFat: this.getHealthThreshold('bodyFat'),
+            bodyWater: this.getHealthThreshold('bodyWater'),
+            visceralFat: this.getHealthThreshold('visceralFat'),
+            protein: this.getHealthThreshold('protein')
+        });
     }
 
     // Bind event listeners
@@ -775,9 +784,10 @@ class BodyCompositionTracker {
             // Add threshold line if applicable
             const threshold = this.getHealthThreshold(metric);
             if (threshold && labels.length > 0) {
+                console.log(`Adding threshold line for ${metric}: ${threshold.value}`);
                 const thresholdData = new Array(labels.length).fill(threshold.value);
                 datasets.push({
-                    label: threshold.label,
+                    label: `🎯 ${threshold.label}`,
                     data: thresholdData,
                     borderColor: threshold.color,
                     backgroundColor: 'transparent',
@@ -786,7 +796,8 @@ class BodyCompositionTracker {
                     pointRadius: 0,
                     pointHoverRadius: 0,
                     fill: false,
-                    tension: 0
+                    tension: 0,
+                    order: 999 // Draw threshold lines on top
                 });
             }
             
