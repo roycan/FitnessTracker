@@ -634,7 +634,7 @@ class BodyCompositionTracker {
                         fill: false,
                         pointRadius: 4,
                         pointHoverRadius: 6,
-                        spanGaps: false
+                        spanGaps: true
                     });
                 }
             });
