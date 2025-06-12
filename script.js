@@ -402,7 +402,6 @@ class BodyCompositionTracker {
     // Format metric names for display
     formatMetricName(key) {
         const names = {
-            bodyScore: 'Body Score',
             bodyFat: 'Body Fat',
             muscleMass: 'Muscle Mass',
             bodyWater: 'Body Water',
@@ -418,7 +417,6 @@ class BodyCompositionTracker {
     // Get unit for metric
     getUnit(key) {
         const units = {
-            bodyScore: '',
             bodyFat: '%',
             muscleMass: 'kg',
             bodyWater: '%',
@@ -548,6 +546,7 @@ class BodyCompositionTracker {
                 this.charts[metric] = new Chart(ctx, {
                     type: 'line',
                     data: {
+                        labels: [],
                         datasets: []
                     },
                     options: {
@@ -565,13 +564,6 @@ class BodyCompositionTracker {
                         },
                         scales: {
                             x: {
-                                type: 'time',
-                                time: {
-                                    unit: 'day',
-                                    displayFormats: {
-                                        day: 'MMM DD'
-                                    }
-                                },
                                 title: {
                                     display: true,
                                     text: 'Date'
@@ -606,31 +598,48 @@ class BodyCompositionTracker {
             const chart = this.charts[metric];
             if (!chart) return;
             
+            // Get all unique sorted dates for proper x-axis ordering
+            const allTimestamps = [...new Set(this.data.map(entry => entry.timestamp))]
+                .sort((a, b) => new Date(a) - new Date(b));
+            
+            const labels = allTimestamps.map(timestamp => 
+                new Date(timestamp).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric' 
+                })
+            );
+            
             const datasets = [];
             
             users.forEach((user, userIndex) => {
-                const userData = this.data
-                    .filter(entry => entry.name === user && entry[metric] !== undefined)
-                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-                    .map(entry => ({
-                        x: new Date(entry.timestamp),
-                        y: entry[metric]
-                    }));
+                const userEntries = this.data
+                    .filter(entry => entry.name === user)
+                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                 
-                if (userData.length > 0) {
+                // Create data points aligned with all timestamps
+                const dataPoints = allTimestamps.map(timestamp => {
+                    const entry = userEntries.find(e => e.timestamp === timestamp);
+                    return entry && entry[metric] !== undefined ? entry[metric] : null;
+                });
+                
+                // Only add dataset if user has data for this metric
+                const hasData = dataPoints.some(point => point !== null);
+                if (hasData) {
                     datasets.push({
                         label: user,
-                        data: userData,
+                        data: dataPoints,
                         borderColor: colors[userIndex % colors.length],
                         backgroundColor: colors[userIndex % colors.length] + '20',
                         tension: 0.1,
                         fill: false,
                         pointRadius: 4,
-                        pointHoverRadius: 6
+                        pointHoverRadius: 6,
+                        spanGaps: false
                     });
                 }
             });
             
+            chart.data.labels = labels;
             chart.data.datasets = datasets;
             chart.update();
         });
