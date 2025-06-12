@@ -101,10 +101,7 @@ class BodyCompositionTracker {
 
     // Process uploaded files
     async processFiles(files) {
-        if (!this.currentUser) {
-            alert('Please select a profile first');
-            return;
-        }
+        // Profile selection is optional now - names can be extracted from images
 
         const imageFiles = files.filter(file => file.type.startsWith('image/'));
         if (imageFiles.length === 0) {
@@ -122,18 +119,27 @@ class BodyCompositionTracker {
             try {
                 const extractedData = await this.extractDataFromImage(file);
                 if (extractedData) {
+                    // Use extracted name if available, otherwise fall back to current user
+                    const userName = extractedData.extractedName || this.currentUser;
+                    const timestamp = extractedData.extractedDate || new Date().toISOString();
+                    
+                    // Remove metadata from extracted data before storing
+                    const { extractedName, extractedDate, ...metrics } = extractedData;
+                    
                     const dataEntry = {
-                        name: this.currentUser,
-                        timestamp: new Date().toISOString(),
+                        name: userName,
+                        timestamp: timestamp,
                         filename: file.name,
-                        ...extractedData
+                        ...metrics
                     };
                     
                     this.data.push(dataEntry);
                     results.push({
                         success: true,
                         filename: file.name,
-                        data: extractedData
+                        data: extractedData,
+                        extractedName: userName,
+                        extractedDate: timestamp
                     });
                 } else {
                     results.push({
@@ -185,18 +191,45 @@ class BodyCompositionTracker {
     parseBodyCompositionData(text) {
         const data = {};
         const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+        const combinedText = lines.join(' ').toLowerCase();
         
-        // Common patterns for body composition metrics
-        const patterns = {
-            bodyFat: /(?:body\s*fat|fat\s*percentage|fat\s*%)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
-            muscleMass: /(?:muscle\s*mass|muscle)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
-            bodyWater: /(?:body\s*water|water\s*%|water\s*percentage)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
-            bmi: /(?:bmi|body\s*mass\s*index)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
-            visceralFat: /(?:visceral\s*fat|visceral)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i
+        // Extract name from Zepp Life format
+        let extractedName = null;
+        const namePatterns = [
+            /^([a-zA-Z]+(?:\.[a-zA-Z]+)?)\s*$/m,  // Single word names like "Rap", "Ross"
+            /^([a-zA-Z]+\.[a-zA-Z]+)\s*$/m       // Names with dots like "roy.canseco"
+        ];
+        
+        for (const pattern of namePatterns) {
+            const nameMatch = text.match(pattern);
+            if (nameMatch && nameMatch[1] && 
+                !['body', 'score', 'progress', 'weight', 'overweight', 'thick', 'set', 'zepp', 'life'].includes(nameMatch[1].toLowerCase())) {
+                extractedName = nameMatch[1];
+                break;
+            }
+        }
+        
+        // Extract date from Zepp Life format (e.g., "01/16 07:07 PM", "02/02 04:08 PM")
+        let extractedDate = null;
+        const datePattern = /(\d{2}\/\d{2})\s+(\d{2}:\d{2})\s+(AM|PM)/i;
+        const dateMatch = text.match(datePattern);
+        if (dateMatch) {
+            const [, date, time, ampm] = dateMatch;
+            const currentYear = new Date().getFullYear();
+            extractedDate = new Date(`${currentYear}/${date} ${time} ${ampm}`).toISOString();
+        }
+        
+        // Zepp Life specific patterns for metrics
+        const zeppPatterns = {
+            bodyFat: /body\s*fat\s*([0-9]+(?:\.[0-9]+)?)\s*%/i,
+            muscleMass: /muscle\s*([0-9]+(?:\.[0-9]+)?)\s*kg/i,
+            bodyWater: /water\s*([0-9]+(?:\.[0-9]+)?)\s*%/i,
+            bmi: /bmi\s*([0-9]+(?:\.[0-9]+)?)/i,
+            visceralFat: /visceral\s*fat\s*([0-9]+)/i
         };
 
-        // Try to match each pattern
-        for (const [key, pattern] of Object.entries(patterns)) {
+        // Try to match Zepp Life specific patterns first
+        for (const [key, pattern] of Object.entries(zeppPatterns)) {
             const match = text.match(pattern);
             if (match) {
                 const value = parseFloat(match[1]);
@@ -205,45 +238,74 @@ class BodyCompositionTracker {
                 }
             }
         }
+        
+        // Fallback to general patterns if Zepp Life patterns don't work
+        if (Object.keys(data).length === 0) {
+            const generalPatterns = {
+                bodyFat: /(?:body\s*fat|fat\s*percentage|fat\s*%)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
+                muscleMass: /(?:muscle\s*mass|muscle)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
+                bodyWater: /(?:body\s*water|water\s*%|water\s*percentage)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
+                bmi: /(?:bmi|body\s*mass\s*index)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
+                visceralFat: /(?:visceral\s*fat|visceral)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i
+            };
+
+            for (const [key, pattern] of Object.entries(generalPatterns)) {
+                const match = text.match(pattern);
+                if (match) {
+                    const value = parseFloat(match[1]);
+                    if (!isNaN(value)) {
+                        data[key] = value;
+                    }
+                }
+            }
+        }
 
         // Alternative approach: look for number-unit pairs
-        const combinedText = lines.join(' ').toLowerCase();
-        
-        // Look for percentage values
-        const percentMatches = combinedText.match(/([0-9]+(?:\.[0-9]+)?)\s*%/g);
-        if (percentMatches) {
-            percentMatches.forEach(match => {
-                const value = parseFloat(match);
-                const context = this.getContext(combinedText, match);
-                
-                if (context.includes('fat') && !data.bodyFat) {
-                    data.bodyFat = value;
-                } else if (context.includes('water') && !data.bodyWater) {
-                    data.bodyWater = value;
-                }
-            });
-        }
-
-        // Look for weight values (kg)
-        const weightMatches = combinedText.match(/([0-9]+(?:\.[0-9]+)?)\s*kg/g);
-        if (weightMatches) {
-            weightMatches.forEach(match => {
-                const value = parseFloat(match);
-                const context = this.getContext(combinedText, match);
-                
-                if (context.includes('muscle') && !data.muscleMass) {
-                    data.muscleMass = value;
-                }
-            });
-        }
-
-        // Look for BMI values
-        const bmiMatches = combinedText.match(/([0-9]+(?:\.[0-9]+)?)\s*(?:bmi|body\s*mass\s*index)/gi);
-        if (bmiMatches && !data.bmi) {
-            const value = parseFloat(bmiMatches[0]);
-            if (value >= 10 && value <= 50) { // Reasonable BMI range
-                data.bmi = value;
+        if (Object.keys(data).length === 0) {
+            // Look for percentage values
+            const percentMatches = combinedText.match(/([0-9]+(?:\.[0-9]+)?)\s*%/g);
+            if (percentMatches) {
+                percentMatches.forEach(match => {
+                    const value = parseFloat(match);
+                    const context = this.getContext(combinedText, match);
+                    
+                    if (context.includes('fat') && !data.bodyFat) {
+                        data.bodyFat = value;
+                    } else if (context.includes('water') && !data.bodyWater) {
+                        data.bodyWater = value;
+                    }
+                });
             }
+
+            // Look for weight values (kg)
+            const weightMatches = combinedText.match(/([0-9]+(?:\.[0-9]+)?)\s*kg/g);
+            if (weightMatches) {
+                weightMatches.forEach(match => {
+                    const value = parseFloat(match);
+                    const context = this.getContext(combinedText, match);
+                    
+                    if (context.includes('muscle') && !data.muscleMass) {
+                        data.muscleMass = value;
+                    }
+                });
+            }
+
+            // Look for BMI values
+            const bmiMatches = combinedText.match(/([0-9]+(?:\.[0-9]+)?)\s*(?:bmi|body\s*mass\s*index)/gi);
+            if (bmiMatches && !data.bmi) {
+                const value = parseFloat(bmiMatches[0]);
+                if (value >= 10 && value <= 50) { // Reasonable BMI range
+                    data.bmi = value;
+                }
+            }
+        }
+
+        // Add extracted name and date to the result
+        if (extractedName) {
+            data.extractedName = extractedName;
+        }
+        if (extractedDate) {
+            data.extractedDate = extractedDate;
         }
 
         // Return data only if we found at least one metric
@@ -290,8 +352,10 @@ class BodyCompositionTracker {
             if (result.success) {
                 resultDiv.innerHTML = `
                     <h4>✅ ${result.filename}</h4>
+                    ${result.extractedName ? `<p><strong>Name:</strong> ${result.extractedName}</p>` : ''}
+                    ${result.extractedDate ? `<p><strong>Date:</strong> ${new Date(result.extractedDate).toLocaleString()}</p>` : ''}
                     <p><strong>Extracted Data:</strong></p>
-                    ${Object.entries(result.data).map(([key, value]) => 
+                    ${Object.entries(result.data).filter(([key]) => !['extractedName', 'extractedDate'].includes(key)).map(([key, value]) => 
                         `<p>${this.formatMetricName(key)}: ${value}${this.getUnit(key)}</p>`
                     ).join('')}
                 `;
@@ -437,6 +501,7 @@ class BodyCompositionTracker {
             this.charts[metric] = new Chart(ctx, {
                 type: 'line',
                 data: {
+                    labels: [],
                     datasets: []
                 },
                 options: {
@@ -483,29 +548,38 @@ class BodyCompositionTracker {
         
         metrics.forEach(metric => {
             const chart = this.charts[metric];
+            if (!chart) return;
+            
+            // Get all unique dates for x-axis labels
+            const allDates = [...new Set(this.data.map(entry => new Date(entry.timestamp).toLocaleDateString()))].sort();
+            
             const datasets = [];
             
             users.forEach((user, userIndex) => {
                 const userData = this.data
                     .filter(entry => entry.name === user && entry[metric] !== undefined)
-                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-                    .map(entry => ({
-                        x: new Date(entry.timestamp).toLocaleDateString(),
-                        y: entry[metric]
-                    }));
+                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                 
                 if (userData.length > 0) {
+                    // Create data points for each date
+                    const dataPoints = allDates.map(date => {
+                        const entry = userData.find(d => new Date(d.timestamp).toLocaleDateString() === date);
+                        return entry ? entry[metric] : null;
+                    });
+                    
                     datasets.push({
                         label: user,
-                        data: userData,
+                        data: dataPoints,
                         borderColor: colors[userIndex % colors.length],
                         backgroundColor: colors[userIndex % colors.length] + '20',
                         tension: 0.1,
-                        fill: false
+                        fill: false,
+                        spanGaps: true
                     });
                 }
             });
             
+            chart.data.labels = allDates;
             chart.data.datasets = datasets;
             chart.update();
         });
