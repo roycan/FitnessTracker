@@ -428,6 +428,23 @@ class BodyCompositionTracker {
         return cleanedMetrics;
     }
 
+    // Get threshold values for health metrics
+    getHealthThreshold(metric) {
+        const thresholds = {
+            bmi: { value: 25, label: 'Healthy BMI (≤25)', color: '#e74c3c' },
+            bodyFat: { value: 23, label: 'Healthy Body Fat (≤23%)', color: '#e74c3c' },
+            bodyWater: { value: 55, label: 'Healthy Body Water (≥55%)', color: '#3498db' },
+            visceralFat: { value: 9, label: 'Healthy Visceral Fat (≤9)', color: '#e74c3c' },
+            protein: { value: 16, label: 'Healthy Protein (≥16%)', color: '#2ecc71' }
+        };
+        return thresholds[metric] || null;
+    }
+
+    // Get empty chart plugins (annotation plugin not available)
+    getChartPlugins(metric) {
+        return {};
+    }
+
     // Progress bar management
     showProgress(show) {
         const progressContainer = document.getElementById('uploadProgress');
@@ -634,6 +651,7 @@ class BodyCompositionTracker {
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
+                            ...this.getChartPlugins(metric),
                             title: {
                                 display: true,
                                 text: `${this.formatMetricName(metric)} Over Time`
@@ -719,6 +737,24 @@ class BodyCompositionTracker {
                     });
                 }
             });
+
+            // Add threshold line if applicable
+            const threshold = this.getHealthThreshold(metric);
+            if (threshold && labels.length > 0) {
+                const thresholdData = new Array(labels.length).fill(threshold.value);
+                datasets.push({
+                    label: threshold.label,
+                    data: thresholdData,
+                    borderColor: threshold.color,
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [10, 5],
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    fill: false,
+                    tension: 0
+                });
+            }
             
             chart.data.labels = labels;
             chart.data.datasets = datasets;
