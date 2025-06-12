@@ -40,6 +40,11 @@ class BodyCompositionTracker {
         
         // Generate charts button
         document.getElementById('generateChartsBtn').addEventListener('click', () => this.generateCharts());
+        
+        // Data backup and restore buttons
+        document.getElementById('exportDataBtn').addEventListener('click', () => this.exportData());
+        document.getElementById('importDataBtn').addEventListener('click', () => this.triggerImport());
+        document.getElementById('importFileInput').addEventListener('change', (e) => this.importData(e));
     }
 
     // Profile management
@@ -444,6 +449,7 @@ class BodyCompositionTracker {
     updateUI() {
         this.updateTable();
         this.updateGenerateChartsButton();
+        this.updateExportImportButtons();
         // Don't auto-update charts anymore - user controls this with button
     }
 
@@ -633,6 +639,150 @@ class BodyCompositionTracker {
         } else {
             button.disabled = false;
             button.textContent = 'Generate Charts';
+        }
+    }
+
+    // Data backup and restore functions
+    exportData() {
+        if (this.data.length === 0) {
+            alert('No data to export. Please upload some images first.');
+            return;
+        }
+
+        const exportData = {
+            version: '1.0',
+            exportDate: new Date().toISOString(),
+            totalEntries: this.data.length,
+            data: this.data
+        };
+
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `body-composition-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        alert(`Successfully exported ${this.data.length} entries to file.`);
+    }
+
+    triggerImport() {
+        document.getElementById('importFileInput').click();
+    }
+
+    async importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+            const text = await file.text();
+            const importedData = JSON.parse(text);
+            
+            // Validate the imported data structure
+            if (!this.validateImportData(importedData)) {
+                alert('Invalid file format. Please select a valid backup file.');
+                return;
+            }
+
+            // Ask user for import strategy
+            const strategy = this.getImportStrategy(importedData);
+            if (!strategy) return; // User cancelled
+
+            this.processImport(importedData, strategy);
+            
+        } catch (error) {
+            console.error('Import error:', error);
+            alert('Error reading file. Please make sure it\'s a valid JSON backup file.');
+        }
+        
+        // Clear the file input
+        event.target.value = '';
+    }
+
+    validateImportData(data) {
+        // Check if it's a valid backup format
+        if (!data || typeof data !== 'object') return false;
+        if (!data.data || !Array.isArray(data.data)) return false;
+        
+        // Check if each entry has required fields
+        return data.data.every(entry => 
+            entry.name && 
+            entry.timestamp && 
+            typeof entry === 'object'
+        );
+    }
+
+    getImportStrategy(importedData) {
+        const existingCount = this.data.length;
+        const importCount = importedData.data.length;
+        
+        if (existingCount === 0) {
+            return confirm(`Import ${importCount} entries from backup?`) ? 'replace' : null;
+        }
+        
+        const choice = prompt(
+            `You have ${existingCount} existing entries and want to import ${importCount} entries.\n\n` +
+            'Choose import strategy:\n' +
+            '1. REPLACE - Delete all existing data and import backup\n' +
+            '2. MERGE - Keep existing data and add backup entries\n\n' +
+            'Enter 1 for REPLACE or 2 for MERGE (or cancel to abort):'
+        );
+        
+        if (choice === '1') return 'replace';
+        if (choice === '2') return 'merge';
+        return null;
+    }
+
+    processImport(importedData, strategy) {
+        const importEntries = importedData.data;
+        
+        if (strategy === 'replace') {
+            this.data = [...importEntries];
+            alert(`Successfully replaced all data with ${importEntries.length} imported entries.`);
+        } else if (strategy === 'merge') {
+            const beforeCount = this.data.length;
+            
+            // Add imported entries that don't duplicate existing ones
+            let duplicateCount = 0;
+            importEntries.forEach(importEntry => {
+                const isDuplicate = this.data.some(existing => 
+                    existing.name === importEntry.name && 
+                    existing.timestamp === importEntry.timestamp
+                );
+                
+                if (!isDuplicate) {
+                    this.data.push(importEntry);
+                } else {
+                    duplicateCount++;
+                }
+            });
+            
+            const newCount = this.data.length - beforeCount;
+            let message = `Successfully imported ${newCount} new entries.`;
+            if (duplicateCount > 0) {
+                message += ` Skipped ${duplicateCount} duplicate entries.`;
+            }
+            alert(message);
+        }
+        
+        this.saveData();
+        this.updateUI();
+        this.updateExportImportButtons();
+    }
+
+    updateExportImportButtons() {
+        const exportBtn = document.getElementById('exportDataBtn');
+        if (this.data.length === 0) {
+            exportBtn.disabled = true;
+            exportBtn.textContent = 'No Data to Export';
+        } else {
+            exportBtn.disabled = false;
+            exportBtn.textContent = `Export Data (${this.data.length} entries)`;
         }
     }
 }

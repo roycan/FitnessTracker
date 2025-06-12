@@ -93,7 +93,12 @@
                 <h2>Data Table</h2>
                 <div class="table-controls">
                     <input type="text" id="filterInput" placeholder="Filter by name" class="filter-input">
-                    <button id="clearDataBtn" class="clear-btn">Clear All Data</button>
+                    <div class="data-management-buttons">
+                        <button id="exportDataBtn" class="export-btn">Export Data</button>
+                        <button id="importDataBtn" class="import-btn">Import Data</button>
+                        <input type="file" id="importFileInput" accept=".json" style="display: none;">
+                        <button id="clearDataBtn" class="clear-btn">Clear All Data</button>
+                    </div>
                 </div>
                 <div class="table-container">
                     <table id="dataTable" class="data-table">
