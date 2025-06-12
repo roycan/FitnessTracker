@@ -242,7 +242,6 @@ class BodyCompositionTracker {
         
         // Zepp Life specific patterns for metrics
         const zeppPatterns = {
-            bodyScore: /body\s*score\s*([0-9]+)/i,
             bodyFat: /body\s*fat\s*([0-9]+(?:\.[0-9]+)?)\s*%/i,
             muscleMass: /muscle\s*([0-9]+(?:\.[0-9]+)?)\s*kg/i,
             bodyWater: /water\s*([0-9]+(?:\.[0-9]+)?)\s*%/i,
@@ -267,7 +266,6 @@ class BodyCompositionTracker {
         // Fallback to general patterns if Zepp Life patterns don't work
         if (Object.keys(data).length === 0) {
             const generalPatterns = {
-                bodyScore: /(?:body\s*score|score)\s*:?\s*([0-9]+)/i,
                 bodyFat: /(?:body\s*fat|fat\s*percentage|fat\s*%)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
                 muscleMass: /(?:muscle\s*mass|muscle)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
                 bodyWater: /(?:body\s*water|water\s*%|water\s*percentage)\s*:?\s*([0-9]+(?:\.[0-9]+)?)/i,
@@ -488,7 +486,6 @@ class BodyCompositionTracker {
             <tr>
                 <td>${entry.name}</td>
                 <td>${new Date(entry.timestamp).toLocaleDateString()}</td>
-                <td>${entry.bodyScore || '-'}</td>
                 <td>${entry.bodyFat || '-'}</td>
                 <td>${entry.muscleMass || '-'}</td>
                 <td>${entry.bodyWater || '-'}</td>
@@ -543,7 +540,7 @@ class BodyCompositionTracker {
             return;
         }
 
-        const metrics = ['bodyScore', 'bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat', 'basalMetabolism', 'protein', 'boneMass'];
+        const metrics = ['bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat', 'basalMetabolism', 'protein', 'boneMass'];
         
         metrics.forEach(metric => {
             try {
@@ -551,7 +548,6 @@ class BodyCompositionTracker {
                 this.charts[metric] = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: [],
                         datasets: []
                     },
                     options: {
@@ -569,6 +565,13 @@ class BodyCompositionTracker {
                         },
                         scales: {
                             x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'day',
+                                    displayFormats: {
+                                        day: 'MMM DD'
+                                    }
+                                },
                                 title: {
                                     display: true,
                                     text: 'Date'
@@ -590,7 +593,7 @@ class BodyCompositionTracker {
     }
 
     updateCharts() {
-        const metrics = ['bodyScore', 'bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat', 'basalMetabolism', 'protein', 'boneMass'];
+        const metrics = ['bodyFat', 'muscleMass', 'bodyWater', 'bmi', 'visceralFat', 'basalMetabolism', 'protein', 'boneMass'];
         const users = [...new Set(this.data.map(entry => entry.name))];
         
         // Generate colors for each user
@@ -603,36 +606,31 @@ class BodyCompositionTracker {
             const chart = this.charts[metric];
             if (!chart) return;
             
-            // Get all unique dates for x-axis labels
-            const allDates = [...new Set(this.data.map(entry => new Date(entry.timestamp).toLocaleDateString()))].sort();
-            
             const datasets = [];
             
             users.forEach((user, userIndex) => {
                 const userData = this.data
                     .filter(entry => entry.name === user && entry[metric] !== undefined)
-                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+                    .map(entry => ({
+                        x: new Date(entry.timestamp),
+                        y: entry[metric]
+                    }));
                 
                 if (userData.length > 0) {
-                    // Create data points for each date
-                    const dataPoints = allDates.map(date => {
-                        const entry = userData.find(d => new Date(d.timestamp).toLocaleDateString() === date);
-                        return entry ? entry[metric] : null;
-                    });
-                    
                     datasets.push({
                         label: user,
-                        data: dataPoints,
+                        data: userData,
                         borderColor: colors[userIndex % colors.length],
                         backgroundColor: colors[userIndex % colors.length] + '20',
                         tension: 0.1,
                         fill: false,
-                        spanGaps: true
+                        pointRadius: 4,
+                        pointHoverRadius: 6
                     });
                 }
             });
             
-            chart.data.labels = allDates;
             chart.data.datasets = datasets;
             chart.update();
         });
