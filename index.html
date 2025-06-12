@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Body Composition Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Body Composition Tracker</h1>
+            <p>Multi-user body composition tracking with OCR image processing</p>
+        </header>
+
+        <main>
+            <!-- User Profile Section -->
+            <section class="profile-section">
+                <h2>Select Profile</h2>
+                <div class="profile-input-group">
+                    <input type="text" id="userNameInput" placeholder="Enter your name" autocomplete="off">
+                    <button id="selectProfileBtn">Select/Create Profile</button>
+                </div>
+                <div id="currentProfile" class="current-profile hidden">
+                    <span>Current Profile: <strong id="currentProfileName"></strong></span>
+                    <button id="switchProfileBtn">Switch Profile</button>
+                </div>
+            </section>
+
+            <!-- File Upload Section -->
+            <section class="upload-section">
+                <h2>Upload Zepp Life Screenshots</h2>
+                <div class="upload-area">
+                    <input type="file" id="imageInput" multiple accept="image/*" class="file-input">
+                    <label for="imageInput" class="file-label">
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-text">
+                            <p>Choose multiple images or drag and drop</p>
+                            <p class="upload-hint">Select Zepp Life app screenshots</p>
+                        </div>
+                    </label>
+                </div>
+                <div id="uploadProgress" class="progress-container hidden">
+                    <div class="progress-bar">
+                        <div id="progressBar" class="progress-fill"></div>
+                    </div>
+                    <div id="progressText" class="progress-text"></div>
+                </div>
+                <div id="uploadResults" class="upload-results hidden">
+                    <h3>Processing Results</h3>
+                    <div id="resultsList" class="results-list"></div>
+                </div>
+            </section>
+
+            <!-- Data Visualization Section -->
+            <section class="visualization-section">
+                <h2>Data Visualization</h2>
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <canvas id="bodyFatChart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="muscleMassChart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="bodyWaterChart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="bmiChart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="visceralFatChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Data Table Section -->
+            <section class="table-section">
+                <h2>Data Table</h2>
+                <div class="table-controls">
+                    <input type="text" id="filterInput" placeholder="Filter by name" class="filter-input">
+                    <button id="clearDataBtn" class="clear-btn">Clear All Data</button>
+                </div>
+                <div class="table-container">
+                    <table id="dataTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Date</th>
+                                <th>Body Fat (%)</th>
+                                <th>Muscle Mass (kg)</th>
+                                <th>Body Water (%)</th>
+                                <th>BMI</th>
+                                <th>Visceral Fat</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="noDataMessage" class="no-data-message">
+                    No data available. Upload some Zepp Life screenshots to get started.
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
