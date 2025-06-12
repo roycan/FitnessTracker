@@ -451,42 +451,27 @@ class BodyCompositionTracker {
         return thresholds[metric] || null;
     }
 
+    // Get chart title with threshold information
+    getChartTitle(metric) {
+        const threshold = this.getHealthThreshold(metric);
+        const metricName = this.formatMetricName(metric);
+        
+        if (threshold) {
+            const direction = ['bodyWater', 'protein'].includes(metric) ? '≥' : '≤';
+            return `${metricName} Over Time (Healthy: ${direction}${threshold.value}${this.getUnit(metric)})`;
+        }
+        
+        return `${metricName} Over Time`;
+    }
+
     // Get empty chart plugins (annotation plugin not available)
     getChartPlugins(metric) {
         return {};
     }
 
-    // Get Y-axis configuration to ensure threshold lines are visible
+    // Get Y-axis configuration 
     getYAxisConfig(metric) {
-        const threshold = this.getHealthThreshold(metric);
-        if (!threshold) {
-            return {};
-        }
-
-        // Get all values for this metric to determine proper range
-        const allValues = this.data
-            .filter(entry => entry[metric] !== undefined && entry[metric] !== null)
-            .map(entry => entry[metric]);
-
-        if (allValues.length === 0) {
-            // No data yet, use threshold-based range
-            return {
-                suggestedMin: Math.max(0, threshold.value - 10),
-                suggestedMax: threshold.value + 10
-            };
-        }
-
-        const minValue = Math.min(...allValues);
-        const maxValue = Math.max(...allValues);
-        
-        // Ensure threshold is always visible in the range
-        const adjustedMin = Math.min(minValue, threshold.value) - 2;
-        const adjustedMax = Math.max(maxValue, threshold.value) + 2;
-
-        return {
-            suggestedMin: Math.max(0, adjustedMin),
-            suggestedMax: adjustedMax
-        };
+        return {};
     }
 
     // Progress bar management
@@ -700,7 +685,7 @@ class BodyCompositionTracker {
                             ...this.getChartPlugins(metric),
                             title: {
                                 display: true,
-                                text: `${this.formatMetricName(metric)} Over Time`
+                                text: this.getChartTitle(metric)
                             },
                             legend: {
                                 display: true,
@@ -785,41 +770,12 @@ class BodyCompositionTracker {
                 }
             });
 
-            // Add threshold line if applicable
-            const threshold = this.getHealthThreshold(metric);
-            if (threshold && labels.length > 0) {
-                console.log(`Adding threshold line for ${metric}: ${threshold.value}, labels: ${labels.length}`);
-                const thresholdData = new Array(labels.length).fill(threshold.value);
-                console.log(`Threshold data array:`, thresholdData);
-                
-                datasets.push({
-                    label: `🎯 ${threshold.label}`,
-                    data: thresholdData,
-                    borderColor: threshold.color,
-                    backgroundColor: 'rgba(0,0,0,0)',
-                    borderWidth: 3,
-                    borderDash: [8, 4],
-                    pointRadius: 0,
-                    pointHoverRadius: 0,
-                    fill: false,
-                    tension: 0,
-                    order: 1 // Draw threshold lines behind data
-                });
-                
-                console.log(`Dataset added for ${metric}:`, datasets[datasets.length - 1]);
-            }
+
             
             chart.data.labels = labels;
             chart.data.datasets = datasets;
             
-            // Update y-axis range to ensure threshold lines are visible
-            const yAxisConfig = this.getYAxisConfig(metric);
-            if (yAxisConfig.suggestedMin !== undefined || yAxisConfig.suggestedMax !== undefined) {
-                chart.options.scales.y = {
-                    ...chart.options.scales.y,
-                    ...yAxisConfig
-                };
-            }
+
             
             chart.update();
         });
