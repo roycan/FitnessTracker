@@ -672,6 +672,7 @@ class BodyCompositionTracker {
         metrics.forEach(metric => {
             try {
                 const ctx = document.getElementById(`${metric}Chart`).getContext('2d');
+                
                 this.charts[metric] = new Chart(ctx, {
                     type: 'line',
                     data: {
@@ -694,22 +695,9 @@ class BodyCompositionTracker {
                         },
                         scales: {
                             x: {
-                                type: 'time',
-                                time: {
-                                    unit: 'day',
-                                    tooltipFormat: 'MMM DD, YYYY',
-                                    displayFormats: {
-                                        day: 'MMM DD',
-                                        week: 'MMM DD',
-                                        month: 'MMM YYYY'
-                                    }
-                                },
                                 title: {
                                     display: true,
                                     text: 'Date'
-                                },
-                                adapters: {
-                                    date: {}
                                 }
                             },
                             y: {
@@ -742,21 +730,46 @@ class BodyCompositionTracker {
             const chart = this.charts[metric];
             if (!chart) return;
             
+            // Get all unique sorted dates for proper x-axis ordering
+            const allTimestamps = [...new Set(this.data.map(entry => entry.timestamp))]
+                .sort((a, b) => new Date(a) - new Date(b));
+            
+            // Create better formatted labels with relative spacing indicators
+            const labels = allTimestamps.map((timestamp, index) => {
+                const date = new Date(timestamp);
+                const label = date.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: '2-digit'
+                });
+                
+                // Add gap indicator for large time differences
+                if (index > 0) {
+                    const prevDate = new Date(allTimestamps[index - 1]);
+                    const daysDiff = Math.floor((date - prevDate) / (1000 * 60 * 60 * 24));
+                    if (daysDiff > 30) {
+                        return `${label} (+${daysDiff}d)`;
+                    }
+                }
+                return label;
+            });
+            
             const datasets = [];
             
             users.forEach((user, userIndex) => {
                 const userEntries = this.data
-                    .filter(entry => entry.name === user && entry[metric] !== undefined)
+                    .filter(entry => entry.name === user)
                     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                 
+                // Create data points aligned with all timestamps
+                const dataPoints = allTimestamps.map(timestamp => {
+                    const entry = userEntries.find(e => e.timestamp === timestamp);
+                    return entry && entry[metric] !== undefined ? entry[metric] : null;
+                });
+                
                 // Only add dataset if user has data for this metric
-                if (userEntries.length > 0) {
-                    // Create data points with x,y coordinates for proper time scaling
-                    const dataPoints = userEntries.map(entry => ({
-                        x: new Date(entry.timestamp),
-                        y: entry[metric]
-                    }));
-                    
+                const hasData = dataPoints.some(point => point !== null);
+                if (hasData) {
                     datasets.push({
                         label: user,
                         data: dataPoints,
@@ -766,11 +779,12 @@ class BodyCompositionTracker {
                         fill: false,
                         pointRadius: 4,
                         pointHoverRadius: 6,
-                        spanGaps: false // Don't span gaps with time scale
+                        spanGaps: true
                     });
                 }
             });
             
+            chart.data.labels = labels;
             chart.data.datasets = datasets;
             chart.update();
         });
