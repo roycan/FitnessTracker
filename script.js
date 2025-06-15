@@ -694,9 +694,22 @@ class BodyCompositionTracker {
                         },
                         scales: {
                             x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'day',
+                                    tooltipFormat: 'MMM DD, YYYY',
+                                    displayFormats: {
+                                        day: 'MMM DD',
+                                        week: 'MMM DD',
+                                        month: 'MMM YYYY'
+                                    }
+                                },
                                 title: {
                                     display: true,
                                     text: 'Date'
+                                },
+                                adapters: {
+                                    date: {}
                                 }
                             },
                             y: {
@@ -729,33 +742,21 @@ class BodyCompositionTracker {
             const chart = this.charts[metric];
             if (!chart) return;
             
-            // Get all unique sorted dates for proper x-axis ordering
-            const allTimestamps = [...new Set(this.data.map(entry => entry.timestamp))]
-                .sort((a, b) => new Date(a) - new Date(b));
-            
-            const labels = allTimestamps.map(timestamp => 
-                new Date(timestamp).toLocaleDateString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric' 
-                })
-            );
-            
             const datasets = [];
             
             users.forEach((user, userIndex) => {
                 const userEntries = this.data
-                    .filter(entry => entry.name === user)
+                    .filter(entry => entry.name === user && entry[metric] !== undefined)
                     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                 
-                // Create data points aligned with all timestamps
-                const dataPoints = allTimestamps.map(timestamp => {
-                    const entry = userEntries.find(e => e.timestamp === timestamp);
-                    return entry && entry[metric] !== undefined ? entry[metric] : null;
-                });
-                
                 // Only add dataset if user has data for this metric
-                const hasData = dataPoints.some(point => point !== null);
-                if (hasData) {
+                if (userEntries.length > 0) {
+                    // Create data points with x,y coordinates for proper time scaling
+                    const dataPoints = userEntries.map(entry => ({
+                        x: new Date(entry.timestamp),
+                        y: entry[metric]
+                    }));
+                    
                     datasets.push({
                         label: user,
                         data: dataPoints,
@@ -765,18 +766,12 @@ class BodyCompositionTracker {
                         fill: false,
                         pointRadius: 4,
                         pointHoverRadius: 6,
-                        spanGaps: true
+                        spanGaps: false // Don't span gaps with time scale
                     });
                 }
             });
-
-
             
-            chart.data.labels = labels;
             chart.data.datasets = datasets;
-            
-
-            
             chart.update();
         });
     }
